@@ -1,4 +1,6 @@
 .idea
 *.iml
 .vscode
+chip
 chip8
+.DS_Store
