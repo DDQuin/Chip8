@@ -13,6 +13,7 @@
 #define TIMER_FREQ 60
 #define MAIN_FREQ 700
 
+unsigned char scancodeMap[256] = {0x0}; // Map scancodes to keys
 unsigned char memory[4096] = {0}; // Read and set memory from rom
 unsigned short pc = 512; // 512 Program counter
 unsigned short i = 0; // address variable
@@ -28,6 +29,28 @@ unsigned short opcode = 0;
 int SHIFT_SETS_VX = 0;
 int JUMP_WITH_VX = 0;
 int STORE_LOAD_INCREMENT_I = 0;
+
+void setUpScancodes() {
+   for (int iS = 0; iS < 256; iS++) {
+      scancodeMap[iS] = 0xFF;
+   }
+   scancodeMap[0x1E] = 0x1;
+   scancodeMap[0x1F] = 0x2;
+   scancodeMap[0x20] = 0x3;
+   scancodeMap[0x21] = 0xC;
+   scancodeMap[0x14] = 0x4;
+   scancodeMap[0x1A] = 0x5;
+   scancodeMap[0x08] = 0x6;
+   scancodeMap[0x15] = 0xD;
+   scancodeMap[0x04] = 0x7;
+   scancodeMap[0x16] = 0x8;
+   scancodeMap[0x07] = 0x9;
+   scancodeMap[0x09] = 0xE;
+   scancodeMap[0x1D] = 0xA;
+   scancodeMap[0x1B] = 0x0;
+   scancodeMap[0x06] = 0xB;
+   scancodeMap[0x19] = 0xF;
+}
 
 void readRom(char *romName, int fileLen, int offset) {
    FILE *romFile;
@@ -51,6 +74,7 @@ int main (int argc, char *argv[]) {
       printf("No ROM supplied!\n");
       exit(1);
    }
+   setUpScancodes();
    srand(time(NULL));
    SDL_Event event;
    SDL_Renderer *renderer;
@@ -283,138 +307,35 @@ int main (int argc, char *argv[]) {
 
             case 0xE:
                if (N == 0xE && Y == 0x9) { //EX9E skip  if current key = key in vx
-               switch (scancode) {
-                  case 0x1E:
-                     if (registers[X] == 0x1) {pc = pc + 2;}
-                     break;
-                  case 0x1F:
-                     if (registers[X] == 0x2) {pc = pc + 2;}
-                     break;
-                  case 0x20:
-                     if (registers[X] == 0x3) {pc = pc + 2;}
-                     break;
-                  case 0x21:
-                     if (registers[X] == 0xC) {pc = pc + 2;}
-                     break;
-                  case 0x14:
-                     if (registers[X] == 0x4) {pc = pc + 2;}
-                     break;
-                  case 0x1A:
-                     if (registers[X] == 0x5) {pc = pc + 2;}
-                     break;
-                  case 0x08:
-                     if (registers[X] == 0x6) {pc = pc + 2;}
-                     break;
-                  case 0x15:
-                     if (registers[X] == 0xD) {pc = pc + 2;}
-                     break;
-                  case 0x04:
-                     if (registers[X] == 0x7) {pc = pc + 2;}
-                     break;
-                  case 0x16:
-                     if (registers[X] == 0x8) {pc = pc + 2;}
-                     break;
-                  case 0x07:
-                     if (registers[X] == 0x9) {pc = pc + 2;}
-                     break;
-                  case 0x09:
-                     if (registers[X] == 0xE) {pc = pc + 2;}
-                     break;
-                  case 0x1D:
-                     if (registers[X] == 0xA) {pc = pc + 2;}
-                     break;
-                  case 0x1B:
-                     if (registers[X] == 0x0) {pc = pc + 2;}
-                     break;
-                  case 0x06:
-                     if (registers[X] == 0xB) {pc = pc + 2;}
-                     break;
-                  case 0x19:
-                     if (registers[X] == 0xF) {pc = pc + 2;}
-                     break;
-                  default:
-                     break;
+                  unsigned char key = scancodeMap[scancode];
+                  if (key != 0xFF && registers[X] == key) {
+                        pc = pc + 2;
+                  }
                }
-               }
+
                if (Y == 0xA && N == 0x1) { //EXA1 skip if current key != key in vx
-               switch (scancode) {
-                  case 0x1E:
-                     if (registers[X] != 0x1) {pc = pc + 2;}
-                     break;
-                  case 0x1F:
-                     if (registers[X] != 0x2) {pc = pc + 2;}
-                     break;
-                  case 0x20:
-                     if (registers[X] != 0x3) {pc = pc + 2;}
-                     break;
-                  case 0x21:
-                     if (registers[X] != 0xC) {pc = pc + 2;}
-                     break;
-                  case 0x14:
-                     if (registers[X] != 0x4) {pc = pc + 2;}
-                     break;
-                  case 0x1A:
-                     if (registers[X] != 0x5) {pc = pc + 2;}
-                     break;
-                  case 0x08:
-                     if (registers[X] != 0x6) {pc = pc + 2;}
-                     break;
-                  case 0x15:
-                     if (registers[X] != 0xD) {pc = pc + 2;}
-                     break;
-                  case 0x04:
-                     if (registers[X] != 0x7) {pc = pc + 2;}
-                     break;
-                  case 0x16:
-                     if (registers[X] != 0x8) {pc = pc + 2;}
-                     break;
-                  case 0x07:
-                     if (registers[X] != 0x9) {pc = pc + 2;}
-                     break;
-                  case 0x09:
-                     if (registers[X] != 0xE) {pc = pc + 2;}
-                     break;
-                  case 0x1D:
-                     if (registers[X] != 0xA) {pc = pc + 2;}
-                     break;
-                  case 0x1B:
-                     if (registers[X] != 0x0) {pc = pc + 2;}
-                     break;
-                  case 0x06:
-                     if (registers[X] != 0xB) {pc = pc + 2;}
-                     break;
-                  case 0x19:
-                     if (registers[X] != 0xF) {pc = pc + 2;}
-                     break;
-                  default:
-                     pc = pc + 2;
-                     break;
-               }
+                  unsigned char key = scancodeMap[scancode];
+                  if (key != 0xFF) {
+                     if (registers[X] != key) {
+                        pc = pc + 2;
+                     } else {
+                        // No skip since have key but == key in vx
+                     }
+                  } else {
+                     pc = pc +2;
+                  }
             }
             break;
 
             case 0xF:
             if (N == 0xA && Y == 0x0) { //FX0A get key
                pc = pc - 2;
-               if (scancode == 0x1E) {registers[X] = 0x1; pc = pc + 2; scancode = 0xFF;  } 
-               if (scancode == 0x1F) {registers[X] = 0x2; pc = pc + 2; scancode = 0xFF; }
-               if (scancode == 0x20) {registers[X] = 0x3; pc = pc + 2; scancode = 0xFF; } 
-               if (scancode == 0x21) {registers[X] = 0xC; pc = pc + 2; scancode = 0xFF; }
-
-               if (scancode == 0x14) {registers[X] = 0x4; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x1A) {registers[X] = 0x5; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x08) {registers[X] = 0x6; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x15) {registers[X] = 0xD; pc = pc + 2; scancode = 0xFF;}
-
-               if (scancode == 0x04) {registers[X] = 0x7; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x16) {registers[X] = 0x8; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x07) {registers[X] = 0x9; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x09) {registers[X] = 0xE; pc = pc + 2; scancode = 0xFF; }
-
-               if (scancode == 0x1D) {registers[X] = 0xA; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x1B) {registers[X] = 0x0; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x06) {registers[X] = 0xB; pc = pc + 2;  scancode = 0xFF;}
-               if (scancode == 0x19) {registers[X] = 0xF; pc = pc + 2; scancode = 0xFF; }
+               unsigned char key = scancodeMap[scancode];
+               if (key != 0xFF) {
+                  registers[X] = key;
+                  pc = pc + 2;
+                  scancode = 0xFF;
+               }
             }
 
             if (Y == 0x0 && N == 0x7) { //FX07 sets VX to currnet val of dealy timer
