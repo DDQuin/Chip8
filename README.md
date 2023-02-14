@@ -2,9 +2,9 @@
 
 A simple Chip-8 interpreter made in C as a fun project.
 
-To run clone project and compile with `gcc main.c audio.c -o chip8 -Wall -pedantic -lSDL2`.
+To run clone project and compile with `make`. Make sure you have SDL installed as well.
 
-and run `./chip8 roms/{ROM}`
+and run `./chip8 roms/{ROM}` (boot.ch8 is a base ROM for storing the first 512 bytes with font data, dont modify)
 
 Simple audio library taken from https://github.com/jakebesworth/Simple-SDL2-Audio by Jake Besworth. 
 

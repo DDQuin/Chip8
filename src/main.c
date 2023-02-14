@@ -5,69 +5,21 @@
 #include <SDL2/SDL.h>
 #include <sys/time.h>
 #include "audio.h"
+#include "stack.h"
 
 #define WINDOW_WIDTH 64
 #define WINDOW_HEIGHT 32
 #define SCALE 16
 #define TIMER_FREQ 60
 #define MAIN_FREQ 700
-//Stack implementation
 
-int MAXSIZE = 16;       
-short stack[16];     
-int top = -1;            
-
-short isEmpty() {
-   if(top == -1)
-      return 1;
-   else
-      return 0;
-}
-   
-short isFull() {
-
-   if(top == MAXSIZE)
-      return 1;
-   else
-      return 0;
-}
-
-short peek() {
-   return stack[top];
-}
-
-short pop() {
-   short data;
-	
-   if(!isEmpty()) {
-      data = stack[top];
-      top = top - 1;   
-      return data;
-   } else {
-      printf("Could not retrieve data, Stack is empty.\n");
-      return -1;
-   }
-}
-
-short push(short data) {
-
-   if(!isFull()) {
-      top = top + 1;   
-      stack[top] = data;
-      return 0;
-   } else {
-      printf("Could not insert data, Stack is full.\n");
-      return -1;
-   }
-}
 
 
 int main (int argc, char *argv[]) {
    if (argc <= 1) {
-      printf("No ROM supplied!\n");
+      printf("No ROM supplisd!\n");
       exit(1);
    }
-
    srand(time(NULL));
     SDL_Event event;
     SDL_Renderer *renderer;
@@ -77,7 +29,8 @@ int main (int argc, char *argv[]) {
 
     /* Init Simple-SDL2-Audio */
     initAudio();
-    Audio * music = createAudio("sound/beep.wav", 1, SDL_MIX_MAXVOLUME);
+    Audio * music = createAudio("./sound/beep.wav", 1, SDL_MIX_MAXVOLUME);
+    
     playMusicFromMemory(music, SDL_MIX_MAXVOLUME);
     pauseAudio();
 
@@ -100,7 +53,7 @@ int main (int argc, char *argv[]) {
     unsigned char memory[4096] = {0};
    int fileLen = 512;
    FILE *fBoot;
-    fBoot = fopen ("boot.ch8", "rt");  /* open the boot for reading */
+    fBoot = fopen ("./roms/boot.ch8", "rt");  /* open the boot for reading */
    int r = fread(memory, 1, fileLen, fBoot);
    if(r != fileLen) {
       fprintf(stderr, "error reading key: read %d chars, expected %d\n", r, fileLen);
