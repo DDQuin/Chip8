@@ -105,6 +105,7 @@ int main (int argc, char *argv[]) {
    readRom(argv[1], 4096, 512); // read given ROM
     
    while(1) {
+      
       clock_t start = clock();
       if (total_elapsed_timer > (double)1/(double)TIMER_FREQ) {
          total_elapsed_timer = 0;
@@ -124,6 +125,7 @@ int main (int argc, char *argv[]) {
             break;
          }
          if (event.type == SDL_KEYDOWN) {
+           // printf("scancode is %x", scancode);
             scancode = event.key.keysym.scancode;
          }
       }
@@ -306,10 +308,12 @@ int main (int argc, char *argv[]) {
             break;
 
             case 0xE:
-               if (N == 0xE && Y == 0x9) { //EX9E skip  if current key = key in vx
+               if (Y == 0x9 && N == 0xE) { //EX9E skip  if current key = key in vx
                   unsigned char key = scancodeMap[scancode];
                   if (key != 0xFF && registers[X] == key) {
+                    // printf("skip scan %x", scancode);
                         pc = pc + 2;
+                        scancode = 0xFF;
                   }
                }
 
@@ -317,9 +321,12 @@ int main (int argc, char *argv[]) {
                   unsigned char key = scancodeMap[scancode];
                   if (key != 0xFF) {
                      if (registers[X] != key) {
+                       // printf("NOT %x", scancode);
                         pc = pc + 2;
+                        
                      } else {
                         // No skip since have key but == key in vx
+                        scancode = 0xFF; //Fixed key problem, reset scancode when key ==
                      }
                   } else {
                      pc = pc +2;
@@ -334,7 +341,7 @@ int main (int argc, char *argv[]) {
                if (key != 0xFF) {
                   registers[X] = key;
                   pc = pc + 2;
-                  scancode = 0xFF;
+                  scancode = 0xFF; //Reset scancode after each 
                }
             }
 
