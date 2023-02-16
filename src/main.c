@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include "audio.h"
 #include "stack.h"
+#include "display.h"
 
 #define WINDOW_WIDTH 64
 #define WINDOW_HEIGHT 32
@@ -13,11 +14,6 @@
 #define TIMER_FREQ 60
 #define MAIN_FREQ 1200
 
-#define CLEAR_COLOUR  153, 102, 0, 0 //0, 0, 0, 0
-#define CLEAR_COLOUR_HEX  0x996600 //0x0
-#define SET_COLOUR 255, 204, 0, 255 //255, 255, 255, 255
-
-unsigned char scancodeMap[256] = {0x0}; // Map scancodes to keys
 unsigned char memory[4096] = {0}; // Read and set memory from rom
 unsigned short pc = 512; // 512 Program counter
 unsigned short i = 0; // address variable
@@ -33,28 +29,6 @@ unsigned short opcode = 0;
 int SHIFT_SETS_VX = 0;
 int JUMP_WITH_VX = 0;
 int STORE_LOAD_INCREMENT_I = 0;
-
-void setUpScancodes() {
-   for (int iS = 0; iS < 256; iS++) {
-      scancodeMap[iS] = 0xFF;
-   }
-   scancodeMap[0x1E] = 0x1;
-   scancodeMap[0x1F] = 0x2;
-   scancodeMap[0x20] = 0x3;
-   scancodeMap[0x21] = 0xC;
-   scancodeMap[0x14] = 0x4;
-   scancodeMap[0x1A] = 0x5;
-   scancodeMap[0x08] = 0x6;
-   scancodeMap[0x15] = 0xD;
-   scancodeMap[0x04] = 0x7;
-   scancodeMap[0x16] = 0x8;
-   scancodeMap[0x07] = 0x9;
-   scancodeMap[0x09] = 0xE;
-   scancodeMap[0x1D] = 0xA;
-   scancodeMap[0x1B] = 0x0;
-   scancodeMap[0x06] = 0xB;
-   scancodeMap[0x19] = 0xF;
-}
 
 int readRom(char *romName, int fileLen, int offset) {
    FILE *romFile;
@@ -73,17 +47,13 @@ void printDebug() {
    printf("--------\n");
 }
 
-
 int main (int argc, char *argv[]) {
    if (argc <= 1) {
       printf("No ROM supplied!\n");
       exit(1);
    }
-   setUpScancodes();
    srand(time(NULL));
    SDL_Event event;
-   SDL_Renderer *renderer;
-   SDL_Window *window;
 
    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
@@ -94,23 +64,13 @@ int main (int argc, char *argv[]) {
    playMusicFromMemory(music, SDL_MIX_MAXVOLUME);
    pauseAudio();
 
-   // Setup display
-   window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH * SCALE, WINDOW_HEIGHT * SCALE, SDL_WINDOW_RESIZABLE);
-   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-   SDL_RenderSetScale(renderer, SCALE, SCALE);
-   SDL_Surface *window_surface = SDL_GetWindowSurface(window);
-   unsigned int *pixels = window_surface->pixels;
-   int width = window_surface->w;
-    
-   SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
-   SDL_RenderClear(renderer);
-   SDL_RenderPresent(renderer);
+   setUpDisplay(WINDOW_WIDTH, WINDOW_HEIGHT, SCALE);
+   clearScreen();
 
    readRom("./roms/boot.ch8", 512, 0); // Read boot ROM
    readRom(argv[1], 4096, 512); // read given ROM
     
    while(1) {
-      
       clock_t start = clock();
       if (total_elapsed_timer > (double)1/(double)TIMER_FREQ) {
          total_elapsed_timer = 0;
@@ -156,9 +116,7 @@ int main (int argc, char *argv[]) {
          switch (firstNibble) {
             case 0x0:
                if (X == 0x0 && Y == 0xE && N == 0x0) { //  00E0 clear screen
-                  SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
-                  SDL_RenderClear(renderer);
-                  SDL_RenderPresent(renderer);
+                  clearScreen();
                }
                if (X == 0x0 && Y == 0xE && N == 0xE) { //  00EE return from sub routine
                   pc = pop();
@@ -294,13 +252,10 @@ int main (int argc, char *argv[]) {
                   xCoord = registers[X] % 64;
                   unsigned char sprite = memory[i + row];
                   for (int iP=7; iP>=0; iP--) {
-                     unsigned int curPixel = pixels[(xCoord * SCALE) + (yCoord * SCALE) * width];  // get pixel at xCoord and yCoord
-                     if ((((sprite>>iP) & 1) == 1) && curPixel == CLEAR_COLOUR_HEX) { // and x, y is off. Set x, y on
-                        SDL_SetRenderDrawColor(renderer, SET_COLOUR);
-                        SDL_RenderDrawPoint(renderer, xCoord, yCoord);               
+                     if ((((sprite>>iP) & 1) == 1) && !isPixelOn(xCoord, yCoord)) { // and x, y is off. Set x, y
+                        drawPixel(xCoord, yCoord);              
                      } else if ((((sprite>>iP) & 1) == 1)) { // and x, y is on. Turn x, y off             
-                        SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
-                        SDL_RenderDrawPoint(renderer, xCoord, yCoord);
+                        clearPixel(xCoord, yCoord);
                         registers[0xF] = 1;
                      }
                      if (xCoord == 63) break; //go to next row
@@ -309,20 +264,20 @@ int main (int argc, char *argv[]) {
                   yCoord++;
                   if (yCoord == 32) break; //Edge screen reached
                }
-               SDL_RenderPresent(renderer); //Render all changes made this instruction
+               updateScreen();
             }
             break;
 
             case 0xE:
                if (Y == 0x9 && N == 0xE) { //EX9E skip  if current key = key in vx
-                  unsigned char key = scancodeMap[currentPressedScancode];
+                  unsigned char key = getKeyFromScancode(currentPressedScancode);
                   if (key != 0xFF && registers[X] == key) {
                         pc = pc + 2;
                   }
                }
 
                if (Y == 0xA && N == 0x1) { //EXA1 skip if current key != key in vx
-                  unsigned char key = scancodeMap[currentPressedScancode];
+                 unsigned char key = getKeyFromScancode(currentPressedScancode);
                   if (key != 0xFF) {
                      if (registers[X] != key) {
                         pc = pc + 2;
@@ -338,7 +293,7 @@ int main (int argc, char *argv[]) {
             case 0xF:
             if (N == 0xA && Y == 0x0) { //FX0A get key
                pc = pc - 2;
-               unsigned char key = scancodeMap[currentPressedScancode];
+               unsigned char key = getKeyFromScancode(currentPressedScancode);
                if (key != 0xFF) {
                   registers[X] = key;
                   pc = pc + 2;
@@ -366,22 +321,7 @@ int main (int argc, char *argv[]) {
 
             if (Y == 0x2 && N == 0x9) { //FX29 font, i is set to hex font at X
                unsigned char lastNib = registers[X] & 0x0F;
-               if (lastNib == 0x0) {i = 0x50;}
-               if (lastNib == 0x1) {i = 0x55;}
-               if (lastNib == 0x2) {i = 0x5A;}
-               if (lastNib == 0x3) {i = 0x5F;}
-               if (lastNib == 0x4) {i = 0x64;}
-               if (lastNib == 0x5) {i = 0x69;}
-               if (lastNib == 0x6) {i = 0x6E;}
-               if (lastNib == 0x7) {i = 0x73;}
-               if (lastNib == 0x8) {i = 0x78;}
-               if (lastNib == 0x9) {i = 0x7D;}
-               if (lastNib == 0xA) {i = 0x82;}
-               if (lastNib == 0xB) {i = 0x87;}
-               if (lastNib == 0xC) {i = 0x8C;}
-               if (lastNib == 0xD) {i = 0x91;}
-               if (lastNib == 0xE) {i = 0x96;}
-               if (lastNib == 0xF) {i = 0x9B;}
+               i = getLetterSpriteAddress(lastNib);
             }
 
             if (N == 0x3 && Y == 0x3) { //FX33 BCD, set VX to I, I + 1, I + 2 digits.
@@ -426,8 +366,7 @@ int main (int argc, char *argv[]) {
     }
    endAudio();
    freeAudio(music);
-   SDL_DestroyRenderer(renderer);
-   SDL_DestroyWindow(window);
+   destroyDisplay();
    SDL_Quit();
    return EXIT_SUCCESS;
 }
