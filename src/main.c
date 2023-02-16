@@ -13,6 +13,10 @@
 #define TIMER_FREQ 60
 #define MAIN_FREQ 1200
 
+#define CLEAR_COLOUR  153, 102, 0, 0 //0, 0, 0, 0
+#define CLEAR_COLOUR_HEX  0x996600 //0x0
+#define SET_COLOUR 255, 204, 0, 255 //255, 255, 255, 255
+
 unsigned char scancodeMap[256] = {0x0}; // Map scancodes to keys
 unsigned char memory[4096] = {0}; // Read and set memory from rom
 unsigned short pc = 512; // 512 Program counter
@@ -98,7 +102,7 @@ int main (int argc, char *argv[]) {
    unsigned int *pixels = window_surface->pixels;
    int width = window_surface->w;
     
-   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+   SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
    SDL_RenderClear(renderer);
    SDL_RenderPresent(renderer);
 
@@ -152,7 +156,7 @@ int main (int argc, char *argv[]) {
          switch (firstNibble) {
             case 0x0:
                if (X == 0x0 && Y == 0xE && N == 0x0) { //  00E0 clear screen
-                  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+                  SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
                   SDL_RenderClear(renderer);
                   SDL_RenderPresent(renderer);
                }
@@ -291,11 +295,11 @@ int main (int argc, char *argv[]) {
                   unsigned char sprite = memory[i + row];
                   for (int iP=7; iP>=0; iP--) {
                      unsigned int curPixel = pixels[(xCoord * SCALE) + (yCoord * SCALE) * width];  // get pixel at xCoord and yCoord
-                     if ((((sprite>>iP) & 1) == 1) && curPixel == 0x0) { // and x, y is off. Set x, y on
-                        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                     if ((((sprite>>iP) & 1) == 1) && curPixel == CLEAR_COLOUR_HEX) { // and x, y is off. Set x, y on
+                        SDL_SetRenderDrawColor(renderer, SET_COLOUR);
                         SDL_RenderDrawPoint(renderer, xCoord, yCoord);               
                      } else if ((((sprite>>iP) & 1) == 1)) { // and x, y is on. Turn x, y off             
-                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+                        SDL_SetRenderDrawColor(renderer, CLEAR_COLOUR);
                         SDL_RenderDrawPoint(renderer, xCoord, yCoord);
                         registers[0xF] = 1;
                      }
