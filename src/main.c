@@ -11,7 +11,7 @@
 #define WINDOW_HEIGHT 32
 #define SCALE 16
 #define TIMER_FREQ 60
-#define MAIN_FREQ 700
+#define MAIN_FREQ 1200
 
 unsigned char scancodeMap[256] = {0x0}; // Map scancodes to keys
 unsigned char memory[4096] = {0}; // Read and set memory from rom
@@ -22,7 +22,7 @@ unsigned char sound_timer = 0;
 unsigned char registers[16] = {0}; // registers from V0 - VF
 double total_elapsed_timer = 0;
 double total_elapsed_main = 0;
-unsigned char scancode = 0xFF; // Currently selectted key
+unsigned char currentPressedScancode = 0xFF; // Currently selectted key
 unsigned short opcode = 0;
 
 // Config stuff, 0 is modern settings
@@ -52,11 +52,12 @@ void setUpScancodes() {
    scancodeMap[0x19] = 0xF;
 }
 
-void readRom(char *romName, int fileLen, int offset) {
+int readRom(char *romName, int fileLen, int offset) {
    FILE *romFile;
    romFile = fopen(romName, "rt");  
    int r = fread(memory + offset, 1, fileLen, romFile);
    fclose(romFile);
+   return r;
 }
 
 void printDebug() {
@@ -125,15 +126,16 @@ int main (int argc, char *argv[]) {
             break;
          }
          if (event.type == SDL_KEYDOWN) {
-           // printf("scancode is %x", scancode);
-            scancode = event.key.keysym.scancode;
+            currentPressedScancode = event.key.keysym.scancode;
+         } else if (event.type == SDL_KEYUP) {
+            if (event.key.keysym.scancode == currentPressedScancode) { //Only reset scancode to nothing if the key that went up is the one currently pressed
+              currentPressedScancode = 0xff;
+            }
          }
       }
       
-      if (total_elapsed_main > (double)1/(double)MAIN_FREQ) {
+      if (total_elapsed_main > (double)1/(double)MAIN_FREQ) { 
          total_elapsed_main = 0;
-        
-         //opcode is 2 bytes long
         
          opcode |= (memory[pc] & 0xFF) << 8; //Big endian so first byte in memory is most significant
          opcode |= (memory[pc + 1] & 0xFF); // second byte in memory is least significant
@@ -309,24 +311,19 @@ int main (int argc, char *argv[]) {
 
             case 0xE:
                if (Y == 0x9 && N == 0xE) { //EX9E skip  if current key = key in vx
-                  unsigned char key = scancodeMap[scancode];
+                  unsigned char key = scancodeMap[currentPressedScancode];
                   if (key != 0xFF && registers[X] == key) {
-                    // printf("skip scan %x", scancode);
                         pc = pc + 2;
-                        scancode = 0xFF;
                   }
                }
 
                if (Y == 0xA && N == 0x1) { //EXA1 skip if current key != key in vx
-                  unsigned char key = scancodeMap[scancode];
+                  unsigned char key = scancodeMap[currentPressedScancode];
                   if (key != 0xFF) {
                      if (registers[X] != key) {
-                       // printf("NOT %x", scancode);
                         pc = pc + 2;
-                        
                      } else {
                         // No skip since have key but == key in vx
-                        scancode = 0xFF; //Fixed key problem, reset scancode when key ==
                      }
                   } else {
                      pc = pc +2;
@@ -337,11 +334,10 @@ int main (int argc, char *argv[]) {
             case 0xF:
             if (N == 0xA && Y == 0x0) { //FX0A get key
                pc = pc - 2;
-               unsigned char key = scancodeMap[scancode];
+               unsigned char key = scancodeMap[currentPressedScancode];
                if (key != 0xFF) {
                   registers[X] = key;
                   pc = pc + 2;
-                  scancode = 0xFF; //Reset scancode after each 
                }
             }
 
