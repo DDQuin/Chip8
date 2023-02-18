@@ -27,28 +27,44 @@ int scale;
 int widthSurface;
 unsigned int *pixels;
 
-unsigned char scancodeMap[256] = {0x0}; // Map scancodes to keys
+unsigned char scancodeMap[16] = {0x0}; // Map keys to scancodes
+
+unsigned char keyMap[16] = {0x0}; // Keys pressed
 
 void setUpScancodes() {
-   for (int iS = 0; iS < 256; iS++) {
-      scancodeMap[iS] = 0xFF;
-   }
-   scancodeMap[0x1E] = 0x1;
-   scancodeMap[0x1F] = 0x2;
-   scancodeMap[0x20] = 0x3;
-   scancodeMap[0x21] = 0xC;
-   scancodeMap[0x14] = 0x4;
-   scancodeMap[0x1A] = 0x5;
-   scancodeMap[0x08] = 0x6;
-   scancodeMap[0x15] = 0xD;
-   scancodeMap[0x04] = 0x7;
-   scancodeMap[0x16] = 0x8;
-   scancodeMap[0x07] = 0x9;
-   scancodeMap[0x09] = 0xE;
-   scancodeMap[0x1D] = 0xA;
-   scancodeMap[0x1B] = 0x0;
-   scancodeMap[0x06] = 0xB;
-   scancodeMap[0x19] = 0xF;
+   scancodeMap[0] = 0x1B;
+   scancodeMap[1] = 0x1E;
+   scancodeMap[2] = 0x1F;
+   scancodeMap[3] = 0x20;
+   scancodeMap[4] = 0x14;
+   scancodeMap[5] = 0x1A;
+   scancodeMap[6] = 0x8;
+   scancodeMap[7] = 0x4;
+   scancodeMap[8] = 0x16;
+   scancodeMap[9] = 0x7;
+   scancodeMap[0xA] = 0x1D;
+   scancodeMap[0xB] = 0x6;
+   scancodeMap[0xC] = 0x21;
+   scancodeMap[0xD] = 0x15;
+   scancodeMap[0xE] = 0x9;
+   scancodeMap[0xF] = 0x19;
+
+   // scancodeMap[0x1E] = 0x1;
+   // scancodeMap[0x1F] = 0x2;
+   // scancodeMap[0x20] = 0x3;
+   // scancodeMap[0x21] = 0xC;
+   // scancodeMap[0x14] = 0x4;
+   // scancodeMap[0x1A] = 0x5;
+   // scancodeMap[0x08] = 0x6;
+   // scancodeMap[0x15] = 0xD;
+   // scancodeMap[0x04] = 0x7;
+   // scancodeMap[0x16] = 0x8;
+   // scancodeMap[0x07] = 0x9;
+   // scancodeMap[0x09] = 0xE;
+   // scancodeMap[0x1D] = 0xA;
+   // scancodeMap[0x1B] = 0x0;
+   // scancodeMap[0x06] = 0xB;
+   // scancodeMap[0x19] = 0xF;
 }
 
 
@@ -109,6 +125,36 @@ void destroyDisplay() {
 
 unsigned char getKeyFromScancode(unsigned char scancode) {
    return scancodeMap[scancode];
+}
+
+void pressKey(unsigned char scancode) {
+   for (int i = 0; i < 16; i++) {
+      if (scancode == scancodeMap[i]) {
+         keyMap[i] = 1;
+      }
+   }
+}
+
+void releaseKey(unsigned char scancode) {
+   for (int i = 0; i < 16; i++) {
+      if (scancode == scancodeMap[i]) {
+         keyMap[i] = 0;
+      }
+   }
+}
+
+int isKeyPressed(unsigned char key) {
+   return keyMap[key];
+}
+
+unsigned char getKeyPressed() {
+   unsigned char currentKey = 0xff;
+   for (int i = 0; i < 16; i++) {
+      if (keyMap[i] == 1) {
+         currentKey = i;
+      }
+   }
+   return currentKey;
 }
 
 unsigned short getLetterSpriteAddress(unsigned char letter) {

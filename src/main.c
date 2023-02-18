@@ -12,7 +12,7 @@
 #define WINDOW_HEIGHT 32
 #define SCALE 16
 #define TIMER_FREQ 60
-#define MAIN_FREQ 1200
+#define MAIN_FREQ 700
 
 unsigned char memory[4096] = {0}; // Read and set memory from rom
 unsigned short pc = 512; // 512 Program counter
@@ -90,11 +90,9 @@ int main (int argc, char *argv[]) {
             break;
          }
          if (event.type == SDL_KEYDOWN) {
-            currentPressedScancode = event.key.keysym.scancode;
+            pressKey(event.key.keysym.scancode);
          } else if (event.type == SDL_KEYUP) {
-            if (event.key.keysym.scancode == currentPressedScancode) { //Only reset scancode to nothing if the key that went up is the one currently pressed
-              currentPressedScancode = 0xff;
-            }
+            releaseKey(event.key.keysym.scancode);
          }
       }
       
@@ -270,32 +268,28 @@ int main (int argc, char *argv[]) {
 
             case 0xE:
                if (Y == 0x9 && N == 0xE) { //EX9E skip  if current key = key in vx
-                  unsigned char key = getKeyFromScancode(currentPressedScancode);
-                  if (key != 0xFF && registers[X] == key) {
-                        pc = pc + 2;
+                  if (registers[X] < 16 && isKeyPressed(registers[X])) {
+                     pc = pc + 2;
                   }
                }
 
                if (Y == 0xA && N == 0x1) { //EXA1 skip if current key != key in vx
-                 unsigned char key = getKeyFromScancode(currentPressedScancode);
-                  if (key != 0xFF) {
-                     if (registers[X] != key) {
+                  if (registers[X] < 16) { // Make sure register stores key
+                     if (!isKeyPressed(registers[X])) {
                         pc = pc + 2;
-                     } else {
-                        // No skip since have key but == key in vx
                      }
                   } else {
-                     pc = pc +2;
+                     pc = pc + 2;
                   }
-            }
+               }
             break;
 
             case 0xF:
             if (N == 0xA && Y == 0x0) { //FX0A get key
                pc = pc - 2;
-               unsigned char key = getKeyFromScancode(currentPressedScancode);
-               if (key != 0xFF) {
-                  registers[X] = key;
+               unsigned char currentPressedKey = getKeyPressed();
+               if (currentPressedKey != 0xff) {
+                  registers[X] = currentPressedKey;
                   pc = pc + 2;
                }
             }
